@@ -1,76 +1,51 @@
 import os
-import subprocess
 from openpyxl import load_workbook
+import shutil
 
-input_dir = "/home/pritom/Desktop/C&A Packing List Extractor/input"
+input_dir = "/home/pritom/Desktop/C&A Packing List Extractor/input/xlsx"
 output_dir = os.path.join(input_dir, "output")
-TARGET_SHEET = "summary sheet"
-NEW_ORDER_NUMBER = "123456"  # change this
+TARGET_SHEET = "Summary Sheet"
+NEW_ORDER_NUMBER = "123456"   # <-- change this
 
 os.makedirs(output_dir, exist_ok=True)
 
-# ---------------- Convert XLS → XLSX ---------------- #
-def convert_xls_to_xlsx(xls_file):
-    xlsx_file = xls_file + "x"  # file.xls -> file.xlsx
+def replace_order_number(file_path, output_path):
+    wb = load_workbook(file_path, data_only=True, keep_vba=True)
 
-    cmd = [
-        "libreoffice", "--headless",
-        "--convert-to", "xlsx", xls_file,
-        "--outdir", input_dir
-    ]
-    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-    return xlsx_file if os.path.exists(xlsx_file) else None
-
-
-# ---------------- Replace Order Number in XLSX ---------------- #
-def update_order_number(xlsx_path, out_path):
-    wb = load_workbook(xlsx_path, data_only=True)
-    
     if TARGET_SHEET not in wb.sheetnames:
-        print(f"⚠️ Summary sheet not found in: {os.path.basename(xlsx_path)}")
-        wb.save(out_path)
+        print(f"⚠️ Summary sheet not found in: {os.path.basename(file_path)}")
+        print(f"   Available sheets: {', '.join(wb.sheetnames)}")
         return
-    
+
     ws = wb[TARGET_SHEET]
     replaced = False
 
     for row in ws.iter_rows():
         for cell in row:
-            if isinstance(cell.value, str) and "order number" in cell.value.lower():
-                for right in row[row.index(cell) + 1:]:
-                    if right.value not in [None, ""]:
-                        right.value = NEW_ORDER_NUMBER
+            if isinstance(cell.value, str) and "order number" in cell.value.strip().lower():
+                for next_cell in row[row.index(cell) + 1:]:
+                    if next_cell.value not in [None, ""]:
+                        next_cell.value = NEW_ORDER_NUMBER
                         replaced = True
                         break
                 break
 
-    wb.save(out_path)
+    # If nothing replaced, copy original file instead
+    if not replaced:
+        shutil.copy2(file_path, output_path)
+        print(f"⚠️ No Order Number cell found, file copied unchanged: {os.path.basename(output_path)}")
+        return
 
-    if replaced:
-        print(f"✅ Updated Order Number → {os.path.basename(out_path)}")
-    else:
-        print(f"⚠️ Order Number not found → {os.path.basename(out_path)}")
+    wb.save(output_path)
+    print(f"✅ Updated and saved: {os.path.basename(output_path)}")
 
 
-# ---------------- Main Driver ---------------- #
 def run():
     for file in os.listdir(input_dir):
-        if file.lower().endswith(".xls"):
-            xls_path = os.path.join(input_dir, file)
-            print(f"📂 Converting: {file}")
-
-            xlsx_path = convert_xls_to_xlsx(xls_path)
-            if not xlsx_path:
-                print(f"❌ Failed to convert {file}")
-                continue
-
-            output_xlsx = os.path.join(output_dir, os.path.basename(xlsx_path))
-            update_order_number(xlsx_path, output_xlsx)
-
-            os.remove(xlsx_path)  # temporary XLSX removed
-
-    print("✅ Done! Converted and updated XLS → XLSX")
+        if file.lower().endswith((".xlsx", ".xlsm")):
+            input_file = os.path.join(input_dir, file)
+            output_file = os.path.join(output_dir, file)
+            replace_order_number(input_file, output_file)
 
 
 if __name__ == "__main__":
