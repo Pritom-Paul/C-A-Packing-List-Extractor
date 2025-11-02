@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import xlrd
 
-input_dir = "/home/pritom/Desktop/C&A Packing List Extractor/input"
+input_dir = "/home/pritom/Desktop/C&A Packing List Extractor/input/packing_lists_extractor_data"
 TARGET_SHEET = "summary sheet"
 
 # -------- Helpers -------- #
