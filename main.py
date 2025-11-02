@@ -53,7 +53,7 @@ def find_total_carton(rows):
 
 def extract_summary_sheet(file_path):
     ext = os.path.splitext(file_path)[1].lower()
-    print(f"📄 File: {os.path.basename(file_path)}")
+    filename = os.path.basename(file_path)
 
     try:
         # Get sheet names
@@ -67,8 +67,8 @@ def extract_summary_sheet(file_path):
         # find target summary sheet
         target = next((s for s in sheet_names if s.strip().lower() == TARGET_SHEET), None)
         if not target:
-            print("⚠️ Summary Sheet NOT found.")
-            return
+            print(f"⚠️ Summary Sheet NOT found in {filename}")
+            return None
 
         # Read rows
         df = pd.read_excel(file_path, sheet_name=target, header=None)
@@ -79,20 +79,45 @@ def extract_summary_sheet(file_path):
         short_po = find_value_after_cell(rows, "short po")
         total_carton = find_total_carton(rows)
 
-        print("✅ Extracted:")
-        print(f"Order Number: {order_no}")
-        print(f"Short PO: {short_po}")
-        print(f"Total Carton: {total_carton}")
+        missing_fields = []
+        if not order_no:
+            missing_fields.append("Order Number")
+        if not short_po:
+            missing_fields.append("Short PO")
+        if not total_carton:
+            missing_fields.append("Total Carton")
+
+        if missing_fields:
+            print(f"⚠️ Could not add row for {filename}. Empty fields: {', '.join(missing_fields)}")
+            return None
+
+        return {
+            "order_no": order_no,
+            "short_po": short_po,
+            "total_carton": total_carton
+        }
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ Error processing {filename}: {e}")
+        return None
 
 # -------- Main Driver -------- #
 
-def main():
+def extract_packing_lists():
+    all_rows = []
+
     for file in os.listdir(input_dir):
         if file.lower().endswith((".xls", ".xlsx", ".xlsm")):
-            extract_summary_sheet(os.path.join(input_dir, file))
+            row = extract_summary_sheet(os.path.join(input_dir, file))
+            if row:
+                all_rows.append(row)
+
+    if all_rows:
+        df = pd.DataFrame(all_rows)
+        print("\n✅ Combined DataFrame:\n")
+        print(df)
+    else:
+        print("\n⚠️ No valid rows to create DataFrame.")
 
 if __name__ == "__main__":
-    main()
+    extract_packing_lists()
