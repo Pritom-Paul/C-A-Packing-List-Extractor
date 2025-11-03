@@ -140,7 +140,7 @@ def extract_country_data(text):
 
 # Main execution
 if __name__ == "__main__":
-    directory_path = "/home/pritom/Desktop/C&A Packing List Extractor/Downloaded PL/Sample"
+    directory_path = "/home/pritom/Desktop/C&A Packing List Extractor/input/Uploads"
     
     df = extract_packing_list_data(directory_path)
     
