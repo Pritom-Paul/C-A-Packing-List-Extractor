@@ -4,16 +4,6 @@ import xlrd
 from openpyxl import load_workbook
 from extract_pl_pdf import extract_packing_list_data
 
-# -------- Directories -------- #
-dir = "/home/pritom/Desktop/C&A Packing List Extractor/media/84771-030-46-130-001"  
-
-# Extract PDF data
-df = extract_packing_list_data(dir)
-print(df)
-
-# Ensure directory exists
-os.makedirs(dir, exist_ok=True)
-
 # -------- Helpers -------- #
 def get_sheet_names(file_path):
     ext = os.path.splitext(file_path)[1].lower()
@@ -114,10 +104,14 @@ def update_excel_weights(file_path, pdf_df):
         print("⚠️ Update canceled, file not saved.")
         
 # -------- Main Driver -------- #
-def update_packing_lists():
+def update_packing_lists(input_dir):
+    # Extract PDF data from the directory
+    df = extract_packing_list_data(input_dir)
     if df.empty:
         print("❌ No PDF data available - terminating")
         return
+    else:
+        print(df)
 
     # Build dictionary of countries for the single order
     pdf_orders = {order_no: group['country_iso'].unique().tolist()
@@ -128,18 +122,19 @@ def update_packing_lists():
         return
 
     # Get Excel files
-    excel_files = [f for f in os.listdir(dir) if f.lower().endswith((".xls", ".xlsx", ".xlsm"))]
+    excel_files = [f for f in os.listdir(input_dir) if f.lower().endswith((".xls", ".xlsx", ".xlsm"))]
 
     if not excel_files:
         print("❌ No Excel files found - terminating")
         return
 
     # Always use first file (assume only one)
-    file_path = os.path.join(dir, excel_files[0])
+    file_path = os.path.join(input_dir, excel_files[0])
     
     if validate_excel_file(file_path, pdf_orders):
         update_excel_weights(file_path, df)  # <-- dynamically update all sheets
 
 # -------- Run Script -------- #
 if __name__ == "__main__":
-    update_packing_lists()
+    input_dir = "/home/pritom/Desktop/C&A Packing List Extractor/media/84771-030-46-130-001"
+    update_packing_lists(input_dir)
