@@ -94,24 +94,19 @@ def validate_and_create_dataframe(result):
     
     df = pd.DataFrame(df_data)
     
-    # Convert numeric columns to appropriate types
-    numeric_columns = ['gross_weight', 'ctn', 'delivery_qty', 'cbm', 'net_weight']
-    for col in numeric_columns:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-    
     # Check for partially incomplete rows (some zeros but not all)
     zero_check_columns = ['gross_weight', 'ctn', 'delivery_qty', 'cbm', 'net_weight']
     
-    # Create masks for different conditions
-    all_zero_mask = (df[zero_check_columns] == 0).all(axis=1)  # All values are 0
-    any_zero_mask = (df[zero_check_columns] == 0).any(axis=1)   # Any value is 0
+    # Create masks for different conditions - checking for string "0"
+    all_zero_mask = (df[zero_check_columns] == "0").all(axis=1)  # All values are "0"
+    any_zero_mask = (df[zero_check_columns] == "0").any(axis=1)   # Any value is "0"
     some_but_not_all_zero_mask = any_zero_mask & ~all_zero_mask  # Some zeros but not all
     
     # FAIL if any row has partial zeros (some zeros but not all)
     if some_but_not_all_zero_mask.any():
         return None, f"FAILED: Found {some_but_not_all_zero_mask.sum()} row(s) with partial zero values"
     
-    # Remove rows where all numeric values are 0 (this is acceptable)
+    # Remove rows where all numeric values are "0" (this is acceptable)
     df_cleaned = df[~all_zero_mask].reset_index(drop=True)
     
     # Check if we have any rows left after cleaning
