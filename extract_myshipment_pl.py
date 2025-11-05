@@ -79,7 +79,7 @@ def validate_and_create_dataframe(result):
     if len(set(list_sizes.values())) != 1:
         return None, f"FAILED: List sizes don't match - {list_sizes}"
     
-    num_rows = list_sizes['gross_weight']
+    num_rows = list_sizes['country_iso']
     
     # Create DataFrame
     df_data = {
