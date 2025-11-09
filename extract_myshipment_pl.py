@@ -209,14 +209,14 @@ def main():
     successful_dfs = []
     
     for result in results:
-        print(f"File: {result['filename']}")
-        print(f"Order No: {result.get('order_no', 'N/A')}")
+        # print(f"File: {result['filename']}")
+        # print(f"Order No: {result.get('order_no', 'N/A')}")
         # print(f"Status: {result['status']}")
         
         # Print list sizes for debugging
-        if 'order_no' in result:
-            list_fields = ['gross_weight', 'ctn', 'delivery_qty', 'cbm', 'net_weight', 'country_iso']
-            list_sizes = {field: len(result[field]) for field in list_fields if field in result}
+        # if 'order_no' in result:
+        #     list_fields = ['gross_weight', 'ctn', 'delivery_qty', 'cbm', 'net_weight', 'country_iso']
+        #     list_sizes = {field: len(result[field]) for field in list_fields if field in result}
             # print(f"List sizes: {list_sizes}")
         
         if result['dataframe'] is not None:
