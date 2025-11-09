@@ -81,15 +81,36 @@ def validate_and_create_dataframe(result):
     
     num_rows = list_sizes['country_iso']
     
-    # Create DataFrame
+    # Format weight and cbm values to 2 decimal places before creating DataFrame
+    formatted_gross_weight = []
+    formatted_net_weight = []
+    formatted_cbm = []
+    
+    for gw, nw, cb in zip(result['gross_weight'], result['net_weight'], result['cbm']):
+        try:
+            formatted_gross_weight.append(f"{float(gw):.2f}")
+        except:
+            formatted_gross_weight.append("0.00")
+        
+        try:
+            formatted_net_weight.append(f"{float(nw):.2f}")
+        except:
+            formatted_net_weight.append("0.00")
+            
+        try:
+            formatted_cbm.append(f"{float(cb):.2f}")
+        except:
+            formatted_cbm.append("0.00")
+    
+    # Create DataFrame with formatted values
     df_data = {
         'order_no': [result['order_no']] * num_rows,
         'country_iso': result['country_iso'],
         'ctn': result['ctn'],
         'delivery_qty': result['delivery_qty'],
-        'gross_weight': result['gross_weight'],
-        'net_weight': result['net_weight'],
-        'cbm': result['cbm'],
+        'gross_weight': formatted_gross_weight,
+        'net_weight': formatted_net_weight,
+        'cbm': formatted_cbm,
     }
     
     df = pd.DataFrame(df_data)
@@ -97,11 +118,11 @@ def validate_and_create_dataframe(result):
     # Check for partially incomplete rows (some zeros but not all)
     zero_check_columns = ['gross_weight', 'ctn', 'delivery_qty', 'cbm', 'net_weight']
     
-    # Create masks for different conditions - checking for string "0"
-    all_zero_mask = (df[zero_check_columns] == "0").all(axis=1)  # All values are "0"
-    any_zero_mask = (df[zero_check_columns] == "0").any(axis=1)   # Any value is "0"
-    some_but_not_all_zero_mask = any_zero_mask & ~all_zero_mask  # Some zeros but not all
-    
+    # Create masks for different conditions - checking for string "0" or "0.00"
+    all_zero_mask = (df[zero_check_columns].isin(["0", "0.00", "0.0"])).all(axis=1)
+    any_zero_mask = (df[zero_check_columns].isin(["0", "0.00", "0.0"])).any(axis=1)
+    some_but_not_all_zero_mask = any_zero_mask & ~all_zero_mask
+
     # FAIL if any row has partial zeros (some zeros but not all)
     if some_but_not_all_zero_mask.any():
         return None, f"FAILED: Found {some_but_not_all_zero_mask.sum()} row(s) with partial zero values"
@@ -190,23 +211,23 @@ def main():
     for result in results:
         print(f"File: {result['filename']}")
         print(f"Order No: {result.get('order_no', 'N/A')}")
-        print(f"Status: {result['status']}")
+        # print(f"Status: {result['status']}")
         
         # Print list sizes for debugging
         if 'order_no' in result:
             list_fields = ['gross_weight', 'ctn', 'delivery_qty', 'cbm', 'net_weight', 'country_iso']
             list_sizes = {field: len(result[field]) for field in list_fields if field in result}
-            print(f"List sizes: {list_sizes}")
+            # print(f"List sizes: {list_sizes}")
         
         if result['dataframe'] is not None:
-            print("DataFrame preview:")
-            print(result['dataframe'])
-            print(f"DataFrame shape: {result['dataframe'].shape}")
+            # print("DataFrame preview:")
+            # print(result['dataframe'])
+            # print(f"DataFrame shape: {result['dataframe'].shape}")
             successful_dfs.append(result['dataframe'])
         else:
             print("No DataFrame created - validation failed")
         
-        print("-" * 50)
+        # print("-" * 50)
     
     # Combine all successful DataFrames
     if successful_dfs:
