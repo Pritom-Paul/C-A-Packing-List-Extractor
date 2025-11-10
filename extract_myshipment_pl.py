@@ -2,9 +2,6 @@ import os
 import pandas as pd
 import xlrd
 
-INPUT_DIR = "/home/pritom/Desktop/C&A Packing List Extractor/Uploads/sample"
-TARGET_SHEET_NAME = "summary sheet"
-
 def extract_order_no(rows):
     """Extract order number using the same pattern as in the new script"""
     label = "order number"
@@ -137,11 +134,12 @@ def validate_and_create_dataframe(result):
     return df_cleaned, "SUCCESS"
 
 def process_file(file_path):
-    ext = os.path.splitext(file_path)[1].lower()
+    """Process a single Excel file and return a dict with dataframe or failure status."""
     filename = os.path.basename(file_path)
-
+    ext = os.path.splitext(filename)[1].lower()
+    
     try:
-        # read sheet names
+        # Read sheet names
         if ext == ".xls":
             workbook = xlrd.open_workbook(file_path)
             sheet_names = workbook.sheet_names()
@@ -149,36 +147,28 @@ def process_file(file_path):
             workbook = pd.ExcelFile(file_path)
             sheet_names = workbook.sheet_names
 
-        # find summary sheet
-        sheet_name = next((s for s in sheet_names if s.strip().lower() == TARGET_SHEET_NAME), None)
+        # Find summary sheet
+        sheet_name = next((s for s in sheet_names if s.strip().lower() == "summary sheet"), None)
         if not sheet_name:
-            return None
+            return {'filename': filename, 'status': "FAILED: Summary Sheet not found", 'dataframe': None}
 
-        # read sheet
+        # Read sheet
         df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
         rows = df.fillna("").values.tolist()
 
-        # extract data with appropriate row offsets
-        gross_weight = extract_column_values(rows, ["Total (Gross Weight)"], default_value="0", row_offset=2)
-        ctn = extract_column_values(rows, ["TOTAL CARTON"], default_value="0", row_offset=1) 
-        delivery_qty = extract_column_values(rows, ["Delivery   Quantity (PCS)"], default_value="0", row_offset=2)
-        cbm = extract_column_values(rows, ["Total (CBM)"], default_value="0", row_offset=2)
-        net_weight = extract_column_values(rows, ["Total (Net Weight)"], default_value="0", row_offset=2)
-        country_iso = extract_column_values(rows, ["Country"], default_value="N/A", row_offset=2)
-        order_no = extract_order_no(rows)
-
+        # Extract columns
         result = {
             'filename': filename,
-            'order_no': order_no,
-            'gross_weight': gross_weight,
-            'ctn': ctn,
-            'delivery_qty': delivery_qty,
-            'cbm': cbm,
-            'net_weight': net_weight,
-            'country_iso': country_iso,
+            'order_no': extract_order_no(rows),
+            'gross_weight': extract_column_values(rows, ["Total (Gross Weight)"], default_value="0", row_offset=2),
+            'ctn': extract_column_values(rows, ["TOTAL CARTON"], default_value="0", row_offset=1),
+            'delivery_qty': extract_column_values(rows, ["Delivery   Quantity (PCS)"], default_value="0", row_offset=2),
+            'cbm': extract_column_values(rows, ["Total (CBM)"], default_value="0", row_offset=2),
+            'net_weight': extract_column_values(rows, ["Total (Net Weight)"], default_value="0", row_offset=2),
+            'country_iso': extract_column_values(rows, ["Country"], default_value="N/A", row_offset=2),
         }
-        
-        # Validate and create DataFrame
+
+        # Validate and create dataframe
         df_validated, status = validate_and_create_dataframe(result)
         result['status'] = status
         result['dataframe'] = df_validated
@@ -188,58 +178,38 @@ def process_file(file_path):
     except Exception as e:
         return {'filename': filename, 'status': f'FAILED: {str(e)}', 'dataframe': None}
 
-def process_all_files():
-    """Process all files and return consolidated results"""
-    if not os.path.isdir(INPUT_DIR):
-        return []
 
-    files = [f for f in os.listdir(INPUT_DIR) if f.lower().endswith((".xls", ".xlsx", ".xlsm"))]
+def extract_myshipment_pl(directory):
+    """Process all Excel files in a directory and return combined dataframe or empty df on any failure."""
+    if not os.path.isdir(directory):
+        print("❌ Directory not found")
+        return pd.DataFrame()
 
-    all_results = []
+    files = [
+        f for f in os.listdir(directory)
+        if f.lower().endswith((".xls", ".xlsx", ".xlsm")) and "inv" not in f.lower()
+    ]
+
+    dfs = []
     for f in files:
-        result = process_file(os.path.join(INPUT_DIR, f))
-        if result:
-            all_results.append(result)
+        result = process_file(os.path.join(directory, f))
 
-    return all_results
+        # Stop immediately if any file is invalid
+        if result.get('dataframe') is None:
+            print(f"❌ {result.get('status', 'Unknown error')} in file: {result.get('filename', 'Unknown')}. Stopping execution.")
+            return pd.DataFrame()
 
-def main():
-    results = process_all_files()
-    
-    successful_dfs = []
-    
-    for result in results:
-        # print(f"File: {result['filename']}")
-        # print(f"Order No: {result.get('order_no', 'N/A')}")
-        # print(f"Status: {result['status']}")
-        
-        # Print list sizes for debugging
-        # if 'order_no' in result:
-        #     list_fields = ['gross_weight', 'ctn', 'delivery_qty', 'cbm', 'net_weight', 'country_iso']
-        #     list_sizes = {field: len(result[field]) for field in list_fields if field in result}
-            # print(f"List sizes: {list_sizes}")
-        
-        if result['dataframe'] is not None:
-            # print("DataFrame preview:")
-            # print(result['dataframe'])
-            # print(f"DataFrame shape: {result['dataframe'].shape}")
-            successful_dfs.append(result['dataframe'])
-        else:
-            print("No DataFrame created - validation failed")
-        
-        # print("-" * 50)
-    
-    # Combine all successful DataFrames
-    if successful_dfs:
-        final_df = pd.concat(successful_dfs, ignore_index=True)
-        print("\n" + "="*50)
-        print("COMBINED DATAFRAME:")
-        print("="*50)
-        print(final_df)
-        print(f"\nFinal DataFrame shape: {final_df.shape}")
+        dfs.append(result['dataframe'])
 
-    else:
-        print("\nNo valid DataFrames were created from any file.")
+    # Combine all successful dataframes
+    if dfs:
+        return pd.concat(dfs, ignore_index=True)
+    
+    print("No valid DataFrames were created from any file.")
+    return pd.DataFrame()
+
 
 if __name__ == "__main__":
-    main()
+    directory = "/home/pritom/Desktop/C&A Packing List Extractor/Packing List Extractor/Upload/All"
+    df = extract_myshipment_pl(directory)
+    print(df)
