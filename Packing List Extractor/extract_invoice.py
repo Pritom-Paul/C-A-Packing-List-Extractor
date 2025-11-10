@@ -251,5 +251,5 @@ def extract_invoice_data(directory):
 # Example usage
 directory = "/home/pritom/Desktop/C&A Packing List Extractor/Packing List Extractor/Upload/All"
 df = extract_invoice_data(directory)
-if df is not None:
-    print(df)
+# if df is not None:
+#     print(df)
