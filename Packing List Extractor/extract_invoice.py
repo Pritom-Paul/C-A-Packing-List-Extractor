@@ -231,8 +231,12 @@ def extract_invoice_data(directory):
                     file_has_valid_data = True
                 else:
                     print(f"❌ Could not extract row from {filename} - Missing: {', '.join(missing)}")
+                    # Return empty DataFrame immediately if any row fails
+                    return pd.DataFrame()
         else:
             print(f"❌ No order numbers found in {filename}")
+            # Return empty DataFrame immediately if no order numbers
+            return pd.DataFrame()
         
         # Print success message after processing each file
         if file_has_valid_data:
@@ -243,7 +247,7 @@ def extract_invoice_data(directory):
         return master_df
     else:
         print("No valid data extracted from any Excel files.")
-        return None
+        return pd.DataFrame() 
 # Example usage
 directory = "/home/pritom/Desktop/C&A Packing List Extractor/Packing List Extractor/Upload/All"
 df = extract_invoice_data(directory)
