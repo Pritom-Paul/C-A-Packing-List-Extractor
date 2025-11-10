@@ -182,15 +182,20 @@ def extract_invoice_data(directory):
     Extract invoice, export, and Contract numbers/dates from all Excel files in a directory.
     Returns a combined DataFrame or prints message if nothing found.
     """
-    excel_files = [f for f in os.listdir(directory) if f.lower().endswith((".xls", ".xlsx", ".xlsm"))]
+    excel_files = [
+        f for f in os.listdir(directory)
+        if f.lower().endswith((".xls", ".xlsx", ".xlsm")) and "inv" in f.lower()
+    ]
+
     all_dfs = []
 
     for filename in excel_files:
         file_path = os.path.join(directory, filename)
         rows = read_excel_rows(file_path)
         if not rows:
-            print(f"❌ 'Invoice' sheet not found in {filename}, skipping.")
-            continue
+            print(f"❌ 'Invoice' sheet not found in {filename}. Stopping execution.")
+            return pd.DataFrame()
+
 
         invoice_no, invoice_date = find_invoice_no_and_date(rows)
         exp_no, exp_date = find_exp_no_and_date(rows)
@@ -240,7 +245,7 @@ def extract_invoice_data(directory):
         print("No valid data extracted from any Excel files.")
         return None
 # Example usage
-directory = "/home/pritom/Desktop/C&A Packing List Extractor/input/C&A Invoices"
+directory = "/home/pritom/Desktop/C&A Packing List Extractor/Packing List Extractor/Upload/All"
 df = extract_invoice_data(directory)
 if df is not None:
     print(df)

@@ -219,7 +219,7 @@ def extract_myshipment_pl(directory):
 
 if __name__ == "__main__":
     # Example usage
-    directory = "/home/pritom/Desktop/C&A Packing List Extractor/Uploads/sample"
+    directory = "/home/pritom/Desktop/C&A Packing List Extractor/Packing List Extractor/Upload/All"
     df = extract_myshipment_pl(directory)
     if df is not None:
         print(df)
