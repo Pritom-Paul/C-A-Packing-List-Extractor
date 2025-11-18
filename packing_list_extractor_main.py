@@ -37,6 +37,11 @@ def packing_list_extractor(input_dir):
         print("\nMerged DataFrame:")
         print(merged_pl_data)
         
+        # #Save the df in the input directory in excel format
+        # output_file_path = f"{input_dir}/merged_packing_list_data.xlsx"
+        # merged_pl_data.to_excel(output_file_path, index=False)
+        # print(f"\n✅ Merged data saved to: {output_file_path}")
+        
         return merged_pl_data
         
     else:
